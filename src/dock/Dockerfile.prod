@@ -1,0 +1,41 @@
+FROM node:22-slim
+
+# Create non-root user early
+RUN useradd -m -u 1001 griduser
+
+# Install system dependencies as root
+RUN apt-get update && \
+    apt-get install -y curl && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install app-server globally as root
+RUN npm install -g @gridspace/app-server
+
+# Switch to griduser for all file operations
+USER griduser
+
+WORKDIR /grid
+
+# Copy package files first for better layer caching
+COPY --chown=griduser:griduser package.json ./
+
+# Copy source files
+COPY --chown=griduser:griduser app.js ./
+COPY --chown=griduser:griduser apps/ ./apps/
+COPY --chown=griduser:griduser src/ ./src/
+COPY --chown=griduser:griduser web/ ./web/
+COPY --chown=griduser:griduser bin/ ./bin/
+COPY --chown=griduser:griduser conf/ ./conf/
+
+# Use the same build process as other workflows, but include production bundles
+RUN npm run setup && npm run webpack-src prod
+
+# Create data directories
+RUN mkdir -p /grid/data /grid/mod /grid/mods
+
+# Clean up but keep built assets
+RUN rm -rf ~/.npm
+
+EXPOSE 8080
+
+CMD ["gs-app-server"]

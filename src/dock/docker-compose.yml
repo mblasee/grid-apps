@@ -1,0 +1,12 @@
+services:
+  grid-apps:
+    image: ghcr.io/mblasee/grid-apps:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../../persist/data:/grid/data
+      - ../../persist/conf:/grid/conf
+      - ../../persist/mods:/grid/mods
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
